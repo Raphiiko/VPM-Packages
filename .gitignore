@@ -1,2 +1,6 @@
 ﻿.idea
 .vscode
+
+# Build artifacts
+ci/
+build/

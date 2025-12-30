@@ -3,8 +3,9 @@ name: Build Repo Listing
 on: 
   workflow_dispatch:
   push:
-    branches: main
-    paths: source.json
+    branches: [main]
+  repository_dispatch:
+    types: [package-update] 
 
 # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
@@ -18,7 +19,7 @@ concurrency:
   cancel-in-progress: true
   
 env:
-  listPublishDirectory: Website
+  listPublishDirectory: build
   pathToCi: ci
 
 jobs:
@@ -46,6 +47,12 @@ jobs:
             ~/.nuget/packages
           key: ${{ runner.os }}-${{ hashFiles('**/global.json', '**/*.csproj') }}
           
+      - name: Create Build Directory
+        run: mkdir -p ${{env.listPublishDirectory}}
+
+      - name: Copy Website Assets
+        run: cp -r Website/* ${{env.listPublishDirectory}}/
+
       - name: Build Package Version Listing
         run: ${{env.pathToCi}}/build.cmd BuildMultiPackageListing --root ${{env.pathToCi}} --list-publish-directory $GITHUB_WORKSPACE/${{env.listPublishDirectory}}
         env:

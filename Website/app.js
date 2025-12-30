@@ -1,5 +1,3 @@
-import { baseLayerLuminance, StandardLuminance } from 'https://unpkg.com/@fluentui/web-components';
-
 const LISTING_URL = "{{ listingInfo.Url }}";
 
 const PACKAGES = {
@@ -7,7 +5,7 @@ const PACKAGES = {
   "{{ package.Name }}": {
     name: "{{ package.Name }}",
     displayName: "{{ if package.DisplayName; package.DisplayName; end; }}",
-    description: "{{ if package.Description; package.Description; end; }}",
+    description: `{{ if package.Description; package.Description; end; }}`,
     version: "{{ package.Version }}",
     author: {
       name: "{{ if package.Author.Name; package.Author.Name; end; }}",
@@ -29,120 +27,181 @@ const PACKAGES = {
 {{~ end ~}}
 };
 
-const setTheme = () => {
-  const isDarkTheme = () => window.matchMedia("(prefers-color-scheme: dark)").matches;
-  if (isDarkTheme()) {
-    baseLayerLuminance.setValueFor(document.documentElement, StandardLuminance.DarkMode);
-  } else {
-    baseLayerLuminance.setValueFor(document.documentElement, StandardLuminance.LightMode);
-  }
-}
-
+// ============================================
+// Search Functionality
+// ============================================
 (() => {
-  setTheme();
-
-  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-    setTheme();
-  });
-
   const packageGrid = document.getElementById('packageGrid');
-
   const searchInput = document.getElementById('searchInput');
+
   searchInput.addEventListener('input', ({ target: { value = '' }}) => {
-    const items = packageGrid.querySelectorAll('fluent-data-grid-row[row-type="default"]');
-    items.forEach(item => {
+    const packageCards = packageGrid.querySelectorAll('.package-card');
+
+    packageCards.forEach(card => {
       if (value === '') {
-        item.style.display = 'grid';
+        card.style.display = 'flex';
         return;
       }
-      if (
-        item.dataset?.packageName?.toLowerCase()?.includes(value.toLowerCase()) ||
-        item.dataset?.packageId?.toLowerCase()?.includes(value.toLowerCase())
-      ) {
-        item.style.display = 'grid';
+
+      const packageName = card.dataset?.packageName?.toLowerCase() || '';
+      const packageId = card.dataset?.packageId?.toLowerCase() || '';
+      const searchTerm = value.toLowerCase();
+
+      if (packageName.includes(searchTerm) || packageId.includes(searchTerm)) {
+        card.style.display = 'flex';
       } else {
-        item.style.display = 'none';
+        card.style.display = 'none';
       }
     });
   });
+})();
 
-  const urlBarHelpButton = document.getElementById('urlBarHelp');
-  const addListingToVccHelp = document.getElementById('addListingToVccHelp');
-  urlBarHelpButton.addEventListener('click', () => {
-    addListingToVccHelp.hidden = false;
-  });
-  const addListingToVccHelpClose = document.getElementById('addListingToVccHelpClose');
-  addListingToVccHelpClose.addEventListener('click', () => {
-    addListingToVccHelp.hidden = true;
-  });
-
-  const vccListingInfoUrlFieldCopy = document.getElementById('vccListingInfoUrlFieldCopy');
-  vccListingInfoUrlFieldCopy.addEventListener('click', () => {
-    const vccUrlField = document.getElementById('vccListingInfoUrlField');
-    vccUrlField.select();
-    navigator.clipboard.writeText(vccUrlField.value);
-    vccUrlFieldCopy.appearance = 'accent';
-    setTimeout(() => {
-      vccUrlFieldCopy.appearance = 'neutral';
-    }, 1000);
-  });
-
+// ============================================
+// Add to VCC Buttons
+// ============================================
+(() => {
+  // Main "Add to VCC" button
   const vccAddRepoButton = document.getElementById('vccAddRepoButton');
-  vccAddRepoButton.addEventListener('click', () => window.location.assign(`vcc://vpm/addRepo?url=${encodeURIComponent(LISTING_URL)}`));
-
-  const vccUrlFieldCopy = document.getElementById('vccUrlFieldCopy');
-  vccUrlFieldCopy.addEventListener('click', () => {
-    const vccUrlField = document.getElementById('vccUrlField');
-    vccUrlField.select();
-    navigator.clipboard.writeText(vccUrlField.value);
-    vccUrlFieldCopy.appearance = 'accent';
-    setTimeout(() => {
-      vccUrlFieldCopy.appearance = 'neutral';
-    }, 1000);
-  });
-
-  const rowMoreMenu = document.getElementById('rowMoreMenu');
-  const hideRowMoreMenu = e => {
-    if (rowMoreMenu.contains(e.target)) return;
-    document.removeEventListener('click', hideRowMoreMenu);
-    rowMoreMenu.hidden = true;
+  if (vccAddRepoButton) {
+    vccAddRepoButton.addEventListener('click', () => {
+      window.location.assign(`vcc://vpm/addRepo?url=${encodeURIComponent(LISTING_URL)}`);
+    });
   }
 
-  const rowMenuButtons = document.querySelectorAll('.rowMenuButton');
-  rowMenuButtons.forEach(button => {
-    button.addEventListener('click', e => {
-      if (rowMoreMenu?.hidden) {
-        rowMoreMenu.style.top = `${e.clientY + e.target.clientHeight}px`;
-        rowMoreMenu.style.left = `${e.clientX - 120}px`;
-        rowMoreMenu.hidden = false;
-
-        const downloadLink = rowMoreMenu.querySelector('#rowMoreMenuDownload');
-        const downloadListener = () => {
-          window.open(e?.target?.dataset?.packageUrl, '_blank');
-        }
-        downloadLink.addEventListener('change', () => {
-          downloadListener();
-          downloadLink.removeEventListener('change', downloadListener);
-        });
-
-        setTimeout(() => {
-          document.addEventListener('click', hideRowMoreMenu);
-        }, 1);
-      }
+  // Package card "Add to VCC" buttons
+  const rowAddToVccButtons = document.querySelectorAll('.rowAddToVccButton');
+  rowAddToVccButtons.forEach((button) => {
+    button.addEventListener('click', () => {
+      window.location.assign(`vcc://vpm/addRepo?url=${encodeURIComponent(LISTING_URL)}`);
     });
   });
+})();
 
+// ============================================
+// Copy URL Buttons
+// ============================================
+(() => {
+  // Main URL copy button
+  const vccUrlFieldCopy = document.getElementById('vccUrlFieldCopy');
+  const vccUrlField = document.getElementById('vccUrlField');
+
+  if (vccUrlFieldCopy && vccUrlField) {
+    vccUrlFieldCopy.addEventListener('click', async () => {
+      vccUrlField.select();
+      try {
+        await navigator.clipboard.writeText(vccUrlField.value);
+        const originalHTML = vccUrlFieldCopy.innerHTML;
+        vccUrlFieldCopy.innerHTML = `
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/>
+          </svg>
+        `;
+        vccUrlFieldCopy.classList.add('btn-primary');
+        vccUrlFieldCopy.classList.remove('btn-secondary');
+
+        setTimeout(() => {
+          vccUrlFieldCopy.innerHTML = originalHTML;
+          vccUrlFieldCopy.classList.remove('btn-primary');
+          vccUrlFieldCopy.classList.add('btn-secondary');
+        }, 2000);
+      } catch (err) {
+        console.error('Failed to copy:', err);
+      }
+    });
+  }
+
+  // Modal URL copy buttons
+  const copyButtons = [
+    { button: 'vccListingInfoUrlFieldCopy', field: 'vccListingInfoUrlField' },
+    { button: 'packageInfoVccUrlFieldCopy', field: 'packageInfoVccUrlField' }
+  ];
+
+  copyButtons.forEach(({ button: buttonId, field: fieldId }) => {
+    const button = document.getElementById(buttonId);
+    const field = document.getElementById(fieldId);
+
+    if (button && field) {
+      button.addEventListener('click', async () => {
+        field.select();
+        try {
+          await navigator.clipboard.writeText(field.value);
+          const originalHTML = button.innerHTML;
+          button.innerHTML = `
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/>
+            </svg>
+            Copied!
+          `;
+          button.classList.add('btn-primary');
+          button.classList.remove('btn-secondary');
+
+          setTimeout(() => {
+            button.innerHTML = originalHTML;
+            button.classList.remove('btn-primary');
+            button.classList.add('btn-secondary');
+          }, 2000);
+        } catch (err) {
+          console.error('Failed to copy:', err);
+        }
+      });
+    }
+  });
+})();
+
+// ============================================
+// Help Modal
+// ============================================
+(() => {
+  const helpModal = document.getElementById('addListingToVccHelp');
+  const urlBarHelp = document.getElementById('urlBarHelp');
+  const helpModalClose = document.getElementById('addListingToVccHelpClose');
+  const packageInfoListingHelp = document.getElementById('packageInfoListingHelp');
+
+  if (urlBarHelp && helpModal) {
+    urlBarHelp.addEventListener('click', () => {
+      helpModal.hidden = false;
+      document.body.style.overflow = 'hidden';
+    });
+  }
+
+  if (packageInfoListingHelp && helpModal) {
+    packageInfoListingHelp.addEventListener('click', () => {
+      helpModal.hidden = false;
+      document.body.style.overflow = 'hidden';
+    });
+  }
+
+  if (helpModalClose && helpModal) {
+    helpModalClose.addEventListener('click', () => {
+      helpModal.hidden = true;
+      document.body.style.overflow = '';
+    });
+  }
+
+  // Close modal when clicking backdrop
+  if (helpModal) {
+    helpModal.querySelector('.modal-backdrop')?.addEventListener('click', () => {
+      helpModal.hidden = true;
+      document.body.style.overflow = '';
+    });
+  }
+
+  // Close modal with Escape key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && helpModal && !helpModal.hidden) {
+      helpModal.hidden = true;
+      document.body.style.overflow = '';
+    }
+  });
+})();
+
+// ============================================
+// Package Info Modal
+// ============================================
+(() => {
   const packageInfoModal = document.getElementById('packageInfoModal');
   const packageInfoModalClose = document.getElementById('packageInfoModalClose');
-  packageInfoModalClose.addEventListener('click', () => {
-    packageInfoModal.hidden = true;
-  });
-
-  // Fluent dialogs use nested shadow-rooted elements, so we need to use JS to style them
-  const modalControl = packageInfoModal.shadowRoot.querySelector('.control');
-  modalControl.style.maxHeight = "90%";
-  modalControl.style.transition = 'height 0.2s ease-in-out';
-  modalControl.style.overflowY = 'hidden';
+  const rowPackageInfoButtons = document.querySelectorAll('.rowPackageInfoButton');
 
   const packageInfoName = document.getElementById('packageInfoName');
   const packageInfoId = document.getElementById('packageInfoId');
@@ -151,81 +210,177 @@ const setTheme = () => {
   const packageInfoAuthor = document.getElementById('packageInfoAuthor');
   const packageInfoDependencies = document.getElementById('packageInfoDependencies');
   const packageInfoKeywords = document.getElementById('packageInfoKeywords');
+  const packageInfoKeywordsSection = document.getElementById('packageInfoKeywordsSection');
   const packageInfoLicense = document.getElementById('packageInfoLicense');
+  const packageInfoLicenseSection = document.getElementById('packageInfoLicenseSection');
 
-  const rowAddToVccButtons = document.querySelectorAll('.rowAddToVccButton');
-  rowAddToVccButtons.forEach((button) => {
-    button.addEventListener('click', () => window.location.assign(`vcc://vpm/addRepo?url=${encodeURIComponent(LISTING_URL)}`));
-  });
-
-  const rowPackageInfoButton = document.querySelectorAll('.rowPackageInfoButton');
-  rowPackageInfoButton.forEach((button) => {
-    button.addEventListener('click', e => {
-      const packageId = e.target.dataset?.packageId;
+  rowPackageInfoButtons.forEach((button) => {
+    button.addEventListener('click', (e) => {
+      const packageId = e.currentTarget.dataset?.packageId;
       const packageInfo = PACKAGES?.[packageId];
+
       if (!packageInfo) {
-        console.error(`Did not find package ${packageId}. Packages available:`, PACKAGES);
+        console.error(`Package ${packageId} not found. Available packages:`, PACKAGES);
         return;
       }
 
-      packageInfoName.textContent = packageInfo.displayName;
+      // Set package info
+      packageInfoName.textContent = packageInfo.displayName || packageInfo.name;
       packageInfoId.textContent = packageId;
       packageInfoVersion.textContent = `v${packageInfo.version}`;
-      packageInfoDescription.textContent = packageInfo.description;
-      packageInfoAuthor.textContent = packageInfo.author.name;
-      packageInfoAuthor.href = packageInfo.author.url;
+      packageInfoDescription.textContent = packageInfo.description || 'No description available';
+      packageInfoAuthor.textContent = packageInfo.author.name || 'Unknown';
+      packageInfoAuthor.href = packageInfo.author.url || '#';
 
-      if ((packageInfo.keywords?.length ?? 0) === 0) {
-        packageInfoKeywords.parentElement.classList.add('hidden');
+      // Handle dependencies
+      packageInfoDependencies.innerHTML = '';
+      const deps = Object.entries(packageInfo.dependencies || {});
+
+      if (deps.length === 0) {
+        const noDepsItem = document.createElement('li');
+        noDepsItem.textContent = 'No dependencies';
+        noDepsItem.style.fontStyle = 'italic';
+        packageInfoDependencies.appendChild(noDepsItem);
       } else {
-        packageInfoKeywords.parentElement.classList.remove('hidden');
-        packageInfoKeywords.innerHTML = null;
-        packageInfo.keywords.forEach(keyword => {
-          const keywordDiv = document.createElement('div');
-          keywordDiv.classList.add('me-2', 'mb-2', 'badge');
-          keywordDiv.textContent = keyword;
-          packageInfoKeywords.appendChild(keywordDiv);
+        deps.forEach(([name, version]) => {
+          const depItem = document.createElement('li');
+          depItem.textContent = `${name} @ ${version}`;
+          packageInfoDependencies.appendChild(depItem);
         });
       }
 
-      if (!packageInfo.license?.length && !packageInfo.licensesUrl?.length) {
-        packageInfoLicense.parentElement.classList.add('hidden');
+      // Handle keywords
+      const keywords = packageInfo.keywords || [];
+      if (keywords.length === 0 || (keywords.length === 1 && keywords[0] === '')) {
+        packageInfoKeywordsSection.classList.add('hidden');
       } else {
-        packageInfoLicense.parentElement.classList.remove('hidden');
-        packageInfoLicense.textContent = packageInfo.license ?? 'See License';
-        packageInfoLicense.href = packageInfo.licensesUrl ?? '#';
+        packageInfoKeywordsSection.classList.remove('hidden');
+        packageInfoKeywords.innerHTML = '';
+        keywords.forEach(keyword => {
+          if (keyword) {
+            const badge = document.createElement('div');
+            badge.className = 'keyword-badge';
+            badge.textContent = keyword;
+            packageInfoKeywords.appendChild(badge);
+          }
+        });
       }
 
-      packageInfoDependencies.innerHTML = null;
-      Object.entries(packageInfo.dependencies).forEach(([name, version]) => {
-        const depRow = document.createElement('li');
-        depRow.classList.add('mb-2');
-        depRow.textContent = `${name} @ v${version}`;
-        packageInfoDependencies.appendChild(depRow);
-      });
+      // Handle license
+      if (!packageInfo.license && !packageInfo.licensesUrl) {
+        packageInfoLicenseSection.classList.add('hidden');
+      } else {
+        packageInfoLicenseSection.classList.remove('hidden');
+        packageInfoLicense.textContent = packageInfo.license || 'See License';
+        packageInfoLicense.href = packageInfo.licensesUrl || '#';
+      }
 
+      // Show modal
       packageInfoModal.hidden = false;
-
-      setTimeout(() => {
-        const height = packageInfoModal.querySelector('.col').clientHeight;
-        modalControl.style.setProperty('--dialog-height', `${height + 14}px`);
-      }, 1);
+      document.body.style.overflow = 'hidden';
     });
   });
 
-  const packageInfoVccUrlFieldCopy = document.getElementById('packageInfoVccUrlFieldCopy');
-  packageInfoVccUrlFieldCopy.addEventListener('click', () => {
-    const vccUrlField = document.getElementById('packageInfoVccUrlField');
-    vccUrlField.select();
-    navigator.clipboard.writeText(vccUrlField.value);
-    vccUrlFieldCopy.appearance = 'accent';
-    setTimeout(() => {
-      vccUrlFieldCopy.appearance = 'neutral';
-    }, 1000);
-  });
+  // Close modal
+  if (packageInfoModalClose && packageInfoModal) {
+    packageInfoModalClose.addEventListener('click', () => {
+      packageInfoModal.hidden = true;
+      document.body.style.overflow = '';
+    });
+  }
 
-  const packageInfoListingHelp = document.getElementById('packageInfoListingHelp');
-  packageInfoListingHelp.addEventListener('click', () => {
-    addListingToVccHelp.hidden = false;
+  // Close modal when clicking backdrop
+  if (packageInfoModal) {
+    packageInfoModal.querySelector('.modal-backdrop')?.addEventListener('click', () => {
+      packageInfoModal.hidden = true;
+      document.body.style.overflow = '';
+    });
+  }
+
+  // Close modal with Escape key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && packageInfoModal && !packageInfoModal.hidden) {
+      packageInfoModal.hidden = true;
+      document.body.style.overflow = '';
+    }
   });
 })();
+
+// ============================================
+// Context Menu
+// ============================================
+(() => {
+  const rowMoreMenu = document.getElementById('rowMoreMenu');
+  const rowMenuButtons = document.querySelectorAll('.rowMenuButton');
+  const rowMoreMenuDownload = document.getElementById('rowMoreMenuDownload');
+
+  let currentPackageUrl = null;
+
+  const hideContextMenu = () => {
+    if (rowMoreMenu) {
+      rowMoreMenu.hidden = true;
+    }
+  };
+
+  rowMenuButtons.forEach(button => {
+    button.addEventListener('click', (e) => {
+      e.stopPropagation();
+
+      currentPackageUrl = e.currentTarget.dataset?.packageUrl;
+
+      if (rowMoreMenu) {
+        // Position the menu near the button
+        const rect = e.currentTarget.getBoundingClientRect();
+        rowMoreMenu.style.top = `${rect.bottom + 5}px`;
+        rowMoreMenu.style.left = `${rect.right - 180}px`;
+        rowMoreMenu.hidden = false;
+
+        // Add click listener to close menu
+        setTimeout(() => {
+          document.addEventListener('click', hideContextMenu, { once: true });
+        }, 10);
+      }
+    });
+  });
+
+  if (rowMoreMenuDownload) {
+    rowMoreMenuDownload.addEventListener('click', () => {
+      if (currentPackageUrl) {
+        window.open(currentPackageUrl, '_blank');
+        hideContextMenu();
+      }
+    });
+  }
+})();
+
+// ============================================
+// Tabs
+// ============================================
+(() => {
+  const tabs = document.querySelectorAll('.tab-button');
+  const contents = document.querySelectorAll('.tab-content');
+
+  if (tabs.length > 0) {
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        // Deactivate all
+        tabs.forEach(t => t.classList.remove('active'));
+        contents.forEach(c => c.classList.remove('active'));
+
+        // Activate clicked
+        tab.classList.add('active');
+        const contentId = `tab-${tab.dataset.tab}`;
+        const content = document.getElementById(contentId);
+        if (content) {
+          content.classList.add('active');
+        }
+      });
+    });
+  }
+})();
+
+// ============================================
+// Initialize
+// ============================================
+console.log('VPM Package Listing loaded');
+console.log(`Packages available: ${Object.keys(PACKAGES).length}`);

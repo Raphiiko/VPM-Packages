@@ -13,9 +13,9 @@ To access these packages, you need to add this repository to your VRChat package
 ### Method 1: One-Click Add (Easiest)
 
 1.  Make sure you have [ALCOM](https://github.com/vrc-get/vrc-get) or [VCC](https://vcc.docs.vrchat.com/) installed.
-2.  **[Click here to Add to VCC / ALCOM](vcc://vcc.raphii.co/index.json)**  
+2.  Visit the [listing website](https://vcc.raphii.co).
+3.  Click the **"Add to VCC"** button on the page.
     *(This should open your package manager and ask you to confirm adding the repository)*
-3.  Or, visit the [listing website](https://vcc.raphii.co) and click the "Add to VCC" button.
 
 ### Method 2: Manual Add
 
